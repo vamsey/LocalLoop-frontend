@@ -118,7 +118,7 @@ function MiniInvoicePreview({ darkMode }) {
           <div className="flex items-center gap-2">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] ${darkMode ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700"}`}>AT</div>
             <div>
-              <p className={`font-bold text-[11px] ${darkMode ? "text-zinc-200" : "text-zinc-800"}`}>Amma Tiffin Center</p>
+              <p className={`font-bold text-[11px] ${darkMode ? "text-zinc-200" : "text-zinc-800"}`}>Sharma Groceries</p>
               <p className={`text-[9px] ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>GSTIN: 36AABCA1234A1Z5</p>
             </div>
           </div>
@@ -189,7 +189,7 @@ function MiniCashSummary({ darkMode }) {
   return (
     <div className={`rounded-2xl border font-mono text-xs overflow-hidden ${darkMode ? "bg-black/40 border-white/10" : "bg-white border-zinc-200 shadow-sm"}`}>
       <div className={`px-4 py-2.5 border-b flex items-center justify-between ${darkMode ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-100"}`}>
-        <p className={`font-bold text-[11px] ${darkMode ? "text-emerald-300" : "text-emerald-800"}`}>Amma Tiffin — Daily Report</p>
+        <p className={`font-bold text-[11px] ${darkMode ? "text-emerald-300" : "text-emerald-800"}`}>Sharma Groceries — Daily Report</p>
         <span className={`text-[9px] ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>Today ✓✓</span>
       </div>
       <div className="px-4 py-3 space-y-1.5">

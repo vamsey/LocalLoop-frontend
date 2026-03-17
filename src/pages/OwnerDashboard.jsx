@@ -243,7 +243,7 @@ function OwnerDashboard() {
           <div className="flex items-center gap-3 px-3 mb-6 mt-2">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-lg ${darkMode ? "bg-white/[0.05] border border-white/10 text-violet-400" : "bg-violet-50 border border-violet-100 text-violet-600"}`}>AT</div>
             <div>
-              <h2 style={{ fontFamily: "'Outfit', sans-serif" }} className="font-bold text-lg leading-tight tracking-tight">Amma Tiffin</h2>
+              <h2 style={{ fontFamily: "'Outfit', sans-serif" }} className="font-bold text-lg leading-tight tracking-tight">Sharma Groceries</h2>
               <p className={`text-xs font-medium uppercase tracking-widest mt-0.5 ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>Owner Portal</p>
             </div>
           </div>
@@ -557,7 +557,7 @@ function OwnerDashboard() {
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${darkMode ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700"}`}>AT</div>
                             <div>
-                              <p className="font-bold text-sm">Amma Tiffin Center</p>
+                              <p className="font-bold text-sm">Sharma Groceries</p>
                               <p className={`text-xs ${darkMode ? "text-zinc-400" : "text-zinc-500"}`}>GSTIN: 36AABCA1234A1Z5 · +91 98765 43210</p>
                             </div>
                           </div>
@@ -810,7 +810,7 @@ function OwnerDashboard() {
 
                         <div className={`rounded-2xl p-4 font-mono text-xs leading-relaxed border ${darkMode ? "bg-black/40 border-white/[0.06]" : "bg-zinc-50 border-zinc-200"}`}>
                           <div className={`inline-block rounded-2xl rounded-tl-sm px-4 py-3 w-full ${darkMode ? "bg-emerald-900/30 border border-emerald-500/20" : "bg-emerald-50 border border-emerald-100"}`}>
-                            <p className={`font-bold mb-2 text-sm ${darkMode ? "text-emerald-300" : "text-emerald-800"}`}>Amma Tiffin — Daily Report</p>
+                            <p className={`font-bold mb-2 text-sm ${darkMode ? "text-emerald-300" : "text-emerald-800"}`}>Sharma Groceries — Daily Report</p>
                             <p className={darkMode ? "text-zinc-400" : "text-zinc-500"}>📅 {new Date().toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short" })}</p>
                             <div className="mt-2 space-y-0.5">
                               <p><span className={darkMode ? "text-zinc-400" : "text-zinc-500"}>💵 Cash:    </span><span className="font-bold text-emerald-500">₹{cashData.cash.toLocaleString("en-IN")}</span></p>
