@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Infinity, Sun, Moon, Menu, X } from "lucide-react";
 function Navbar({ darkMode, setDarkMode }) {
   const location = useLocation();
   const currentPath = location.pathname;
