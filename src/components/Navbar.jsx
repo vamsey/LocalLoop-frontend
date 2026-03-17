@@ -115,3 +115,4 @@ function Navbar({ darkMode, setDarkMode }) {
     </>
   );
 }
+export default Navbar;
