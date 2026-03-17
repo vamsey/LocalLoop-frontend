@@ -170,6 +170,10 @@ function Explore() {
   const [locationName, setLocationName] = useState("you");
   const [selectedBusiness, setSelectedBusiness] = useState(null);
 
+  // 🔥 NEW STATES ADDED HERE
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("darkMode");
     return savedTheme ? JSON.parse(savedTheme) : false;
@@ -185,15 +189,27 @@ function Explore() {
     else document.body.style.overflow = "auto";
   }, [selectedBusiness]);
 
+  // 🔥 UPDATED FETCH WITH RETRY
   useEffect(() => {
-    (async () => {
+    const fetchBusinesses = async () => {
       try {
+        setError(false);
         const res = await getBusinesses();
         const data = Array.isArray(res.data) ? res.data : [];
+
         setBusinesses(data);
         setFiltered(data);
-      } catch (err) { console.error("API error:", err); }
-    })();
+        setLoading(false);
+      } catch (err) {
+        console.error("API error:", err);
+        setError(true);
+
+        // retry after 3 sec (Render wake-up)
+        setTimeout(fetchBusinesses, 3000);
+      }
+    };
+
+    fetchBusinesses();
   }, []);
 
   useEffect(() => {
@@ -220,6 +236,48 @@ function Explore() {
   const filterCategory = (cat) => { setActiveCategory(cat); applyFilters(cat, search); };
   const handleSearch = (val) => { setSearch(val); applyFilters(activeCategory, val); };
 
+  // 🔥 LOADING UI (Handled safely with early return)
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center transition-colors duration-500 ${
+        darkMode ? "bg-[#030303] text-white" : "bg-[#FAFAFA] text-zinc-900"
+      }`}>
+        <h2 className="text-xl font-bold mb-3">🚀 Loading businesses...</h2>
+        <p className="text-sm text-zinc-500 mb-10">
+          First load may take ~15–20 seconds
+        </p>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl px-6">
+          {[1,2,3,4,5,6].map((i) => (
+            <div
+              key={i}
+              className={`h-40 rounded-[2rem] animate-pulse ${
+                darkMode ? "bg-white/[0.05]" : "bg-zinc-200"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 ERROR UI (Handled safely with early return + inherited dark mode bg)
+  if (error) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center text-center transition-colors duration-500 ${
+        darkMode ? "bg-[#030303] text-white" : "bg-[#FAFAFA] text-zinc-900"
+      }`}>
+        <p className="text-lg font-semibold text-amber-500">
+          ⏳ Waking up server... retrying
+        </p>
+        <p className="text-sm text-zinc-500 mt-2">
+          This may take a few seconds
+        </p>
+      </div>
+    );
+  }
+
+  // ✅ MAIN UI (Unchanged)
   return (
     <div
       className={`relative min-h-screen transition-colors duration-500 ${
