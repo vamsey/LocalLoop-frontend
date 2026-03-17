@@ -39,7 +39,7 @@ function RegisterBusiness() {
     setIsSubmitting(true);
 
     try {
-      await axios.post("http://localhost:8080/api/business/register", form);
+      await axios.post("http://https://localloop-backend-7317.onrender.com/api/business/register", form);
 
       // Clear form and show the beautiful success modal instead of an alert!
       setForm({ name: "", category: "", description: "", phone: "" });
