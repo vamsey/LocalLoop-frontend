@@ -1,34 +1,73 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Check, X, Store, Activity, Sparkles, Clock, Trash2, TrendingUp, PieChart, Users, AlertCircle } from "lucide-react";
-import Chart from 'chart.js/auto';
+import {
+  ShieldCheck, Check, X, Store, Activity, Clock, TrendingUp,
+  PieChart, Trash2, ChevronRight, ArrowUpRight, ArrowDownRight,
+  LayoutDashboard, Users, AlertTriangle, CheckCircle2, Hourglass,
+  Building2, Zap, Filter, Search, MoreHorizontal, Eye,
+  RefreshCw, BarChart3,
+} from "lucide-react";
+import Chart from "chart.js/auto";
 import Navbar from "../components/Navbar";
 import { getBusinesses } from "../services/api";
 
 const CATEGORIES = [
-  { label: "Food", emoji: "🍱", color: "#FF6B6B" },
-  { label: "Grocery", emoji: "🛒", color: "#4ECDC4" },
-  { label: "Tailoring", emoji: "🧵", color: "#FFE66D" },
-  { label: "Services", emoji: "🔧", color: "#95E1D3" },
+  { label: "Food",      emoji: "🍱", color: "#f97316" },
+  { label: "Grocery",   emoji: "🛒", color: "#06b6d4" },
+  { label: "Tailoring", emoji: "🧵", color: "#8b5cf6" },
+  { label: "Services",  emoji: "🔧", color: "#10b981" },
 ];
 
-function Admin() {
-  const [pendingBusinesses, setPendingBusinesses] = useState([]);
+// ── Thin sparkline used inside stat cards ──
+function Spark({ data, color = "#8b5cf6", h = 40 }) {
+  const max = Math.max(...data), min = Math.min(...data), range = max - min || 1;
+  const w = 120;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 6) - 3}`).join(" ");
+  const area = `0,${h} ${pts} ${w},${h}`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ height: h }}>
+      <defs>
+        <linearGradient id={`sg-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={area} fill={`url(#sg-${color.replace("#","")})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ── Category pill ──
+function CategoryPill({ label, darkMode }) {
+  const cat = CATEGORIES.find(c => c.label === label);
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+      style={{ background: `${cat?.color || "#888"}18`, color: cat?.color || "#888" }}
+    >
+      {cat?.emoji} {label}
+    </span>
+  );
+}
+
+export default function Admin() {
+  const [pendingBusinesses, setPendingBusinesses]   = useState([]);
   const [approvedBusinesses, setApprovedBusinesses] = useState([]);
-  const [activeTab, setActiveTab] = useState("pending");
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [activeTab,   setActiveTab]   = useState("pending");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mousePos,    setMousePos]    = useState({ x: 0, y: 0 });
 
-  const approvalChartRef = useRef(null);
-  const categoryChartRef = useRef(null);
-  const statusChartRef = useRef(null);
-  const comparisonChartRef = useRef(null);
-
-  const chartInstancesRef = useRef({});
+  const approvalChartRef    = useRef(null);
+  const categoryChartRef    = useRef(null);
+  const statusChartRef      = useRef(null);
+  const comparisonChartRef  = useRef(null);
+  const chartInstancesRef   = useRef({});
 
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
-    return saved ? JSON.parse(saved) : false;
+    return saved !== null ? JSON.parse(saved) : false;
   });
 
   useEffect(() => {
@@ -36,440 +75,365 @@ function Admin() {
     document.documentElement.style.backgroundColor = darkMode ? "#030303" : "#FAFAFA";
   }, [darkMode]);
 
-  const fetchPending = async () => {
-    try {
-      const res = await axios.get("http://localhost:8080/api/admin/pending");
-      setPendingBusinesses(res.data || []);
-    } catch (error) {}
+  /* ── API ── */
+  const fetchPending  = async () => {
+    try { const r = await axios.get("http://localhost:8080/api/admin/pending"); setPendingBusinesses(r.data || []); } catch {}
   };
-
   const fetchApproved = async () => {
-    try {
-      const res = await getBusinesses();
-      const data = Array.isArray(res.data) ? res.data : [];
-      setApprovedBusinesses(data);
-    } catch (error) {}
+    try { const r = await getBusinesses(); setApprovedBusinesses(Array.isArray(r.data) ? r.data : []); } catch {}
   };
 
-  useEffect(() => {
-    fetchPending();
-    fetchApproved();
-  }, []);
-
-  // Initialize Charts
-  useEffect(() => {
-    const initCharts = () => {
-      const textColor = darkMode ? "#a1a1a1" : "#666";
-      const gridColor = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-
-      // Destroy existing charts
-      Object.values(chartInstancesRef.current).forEach(chart => {
-        if (chart) chart.destroy();
-      });
-
-      // Approval Line Chart
-      if (approvalChartRef.current) {
-        const ctx = approvalChartRef.current.getContext('2d');
-        chartInstancesRef.current.approval = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [
-              {
-                label: 'Approved',
-                data: [12, 19, 15, 25, 22, 30],
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                pointBackgroundColor: '#10b981',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2
-              },
-              {
-                label: 'Rejected',
-                data: [2, 3, 2, 1, 2, 1],
-                borderColor: '#ef4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                pointBackgroundColor: '#ef4444',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { color: textColor },
-                grid: { color: gridColor }
-              },
-              x: {
-                ticks: { color: textColor },
-                grid: { color: gridColor }
-              }
-            }
-          }
-        });
-      }
-
-      // Category Doughnut Chart
-      if (categoryChartRef.current) {
-        const ctx = categoryChartRef.current.getContext('2d');
-        chartInstancesRef.current.category = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: ['Food', 'Grocery', 'Services', 'Tailoring'],
-            datasets: [{
-              data: [65, 45, 89, 48],
-              backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'],
-              borderColor: darkMode ? '#1f2937' : '#fff',
-              borderWidth: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: true,
-                position: 'bottom',
-                labels: { color: textColor, padding: 15, boxWidth: 10, font: { size: 12 } }
-              }
-            }
-          }
-        });
-      }
-
-      // Status Bar Chart
-      if (statusChartRef.current) {
-        const ctx = statusChartRef.current.getContext('2d');
-        chartInstancesRef.current.status = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [
-              {
-                label: 'Pending',
-                data: [5, 3, 8, 2, 4, 6],
-                backgroundColor: '#fbbf24',
-                borderRadius: 4,
-                borderSkipped: false
-              },
-              {
-                label: 'Active',
-                data: [12, 19, 15, 25, 22, 30],
-                backgroundColor: '#10b981',
-                borderRadius: 4,
-                borderSkipped: false
-              },
-              {
-                label: 'Suspended',
-                data: [1, 0, 1, 0, 2, 1],
-                backgroundColor: '#ef4444',
-                borderRadius: 4,
-                borderSkipped: false
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: true,
-                position: 'bottom',
-                labels: { color: textColor, padding: 15, boxWidth: 10, font: { size: 12 } }
-              }
-            },
-            scales: {
-              x: {
-                stacked: false,
-                ticks: { color: textColor },
-                grid: { color: gridColor }
-              },
-              y: {
-                stacked: false,
-                ticks: { color: textColor },
-                grid: { color: gridColor }
-              }
-            }
-          }
-        });
-      }
-
-      // Comparison Bar Chart
-      if (comparisonChartRef.current) {
-        const ctx = comparisonChartRef.current.getContext('2d');
-        chartInstancesRef.current.comparison = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
-            datasets: [
-              {
-                label: 'Registered',
-                data: [8, 12, 10, 15, 18],
-                backgroundColor: '#3b82f6',
-                borderRadius: 4,
-                borderSkipped: false
-              },
-              {
-                label: 'Approved',
-                data: [7, 10, 10, 13, 16],
-                backgroundColor: '#10b981',
-                borderRadius: 4,
-                borderSkipped: false
-              },
-              {
-                label: 'Rejected',
-                data: [1, 1, 0, 1, 1],
-                backgroundColor: '#ef4444',
-                borderRadius: 4,
-                borderSkipped: false
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: true,
-                position: 'bottom',
-                labels: { color: textColor, padding: 15, boxWidth: 10, font: { size: 12 } }
-              }
-            },
-            scales: {
-              x: {
-                stacked: false,
-                ticks: { color: textColor },
-                grid: { color: gridColor }
-              },
-              y: {
-                stacked: false,
-                ticks: { color: textColor },
-                grid: { color: gridColor }
-              }
-            }
-          }
-        });
-      }
-    };
-
-    initCharts();
-
-    return () => {
-      Object.values(chartInstancesRef.current).forEach(chart => {
-        if (chart) chart.destroy();
-      });
-    };
-  }, [darkMode]);
+  useEffect(() => { fetchPending(); fetchApproved(); }, []);
 
   const approveBusiness = async (id) => {
-    try {
-      await axios.put(`http://localhost:8080/api/admin/approve/${id}`);
-      fetchPending();
-      fetchApproved();
-      setActiveTab("approved");
-    } catch (error) {
-      alert("Error approving business");
+    try { await axios.put(`http://localhost:8080/api/admin/approve/${id}`); fetchPending(); fetchApproved(); setActiveTab("approved"); }
+    catch { alert("Error approving business"); }
+  };
+  const rejectBusiness  = (id) => setPendingBusinesses(p => p.filter(b => b.id !== id));
+  const deleteBusiness  = async (id) => {
+    if (!window.confirm("Permanently delete this business?")) return;
+    try { await axios.delete(`http://localhost:8080/api/admin/business/${id}`); fetchApproved(); }
+    catch { setApprovedBusinesses(p => p.filter(b => b.id !== id)); }
+  };
+
+  /* ── Charts ── */
+  useEffect(() => {
+    const text  = darkMode ? "#71717a" : "#a1a1aa";
+    const grid  = darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)";
+
+    Object.values(chartInstancesRef.current).forEach(c => c?.destroy());
+    chartInstancesRef.current = {};
+
+    const base = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+    };
+
+    // Approval trend
+    if (approvalChartRef.current) {
+      chartInstancesRef.current.approval = new Chart(approvalChartRef.current, {
+        type: "line",
+        data: {
+          labels: ["Jan","Feb","Mar","Apr","May","Jun"],
+          datasets: [
+            { label:"Approved", data:[12,19,15,25,22,30], borderColor:"#10b981", backgroundColor:"rgba(16,185,129,0.07)", borderWidth:2.5, fill:true, tension:0.4, pointRadius:4, pointHoverRadius:6, pointBackgroundColor:"#10b981", pointBorderColor: darkMode?"#030303":"#fff", pointBorderWidth:2 },
+            { label:"Rejected", data:[2,3,2,1,2,1],       borderColor:"#ef4444", backgroundColor:"rgba(239,68,68,0.06)",   borderWidth:2,   fill:true, tension:0.4, pointRadius:3, pointHoverRadius:5, pointBackgroundColor:"#ef4444", pointBorderColor: darkMode?"#030303":"#fff", pointBorderWidth:2 },
+          ],
+        },
+        options: { ...base, scales: { y:{ beginAtZero:true, ticks:{color:text}, grid:{color:grid}, border:{dash:[4,4]} }, x:{ ticks:{color:text}, grid:{color:grid}, border:{dash:[4,4]} } } },
+      });
     }
-  };
 
-  const rejectBusiness = (id) => {
-    setPendingBusinesses(prev => prev.filter(b => b.id !== id));
-  };
-
-  const deleteBusiness = async (id) => {
-    if(!window.confirm("Permanently delete this business?")) return;
-    try {
-      await axios.delete(`http://localhost:8080/api/admin/business/${id}`);
-      fetchApproved();
-    } catch (error) {
-      setApprovedBusinesses(prev => prev.filter(b => b.id !== id));
+    // Category donut
+    if (categoryChartRef.current) {
+      chartInstancesRef.current.category = new Chart(categoryChartRef.current, {
+        type: "doughnut",
+        data: {
+          labels: ["Food","Grocery","Services","Tailoring"],
+          datasets: [{ data:[65,45,89,48], backgroundColor:["#f97316","#06b6d4","#10b981","#8b5cf6"], borderColor: darkMode?"#0a0a0a":"#fff", borderWidth:3, hoverOffset:6 }],
+        },
+        options: { ...base, cutout:"72%", plugins:{ legend:{ display:true, position:"bottom", labels:{ color:text, padding:16, boxWidth:10, font:{size:11, weight:"600"} } } } },
+      });
     }
-  };
 
-  const currentList = activeTab === "pending" ? pendingBusinesses : approvedBusinesses;
+    // Status bar
+    if (statusChartRef.current) {
+      chartInstancesRef.current.status = new Chart(statusChartRef.current, {
+        type:"bar",
+        data:{
+          labels:["Jan","Feb","Mar","Apr","May","Jun"],
+          datasets:[
+            { label:"Pending", data:[5,3,8,2,4,6], backgroundColor:"#f59e0b", borderRadius:6, borderSkipped:false },
+            { label:"Active",  data:[12,19,15,25,22,30], backgroundColor:"#10b981", borderRadius:6, borderSkipped:false },
+            { label:"Suspended", data:[1,0,1,0,2,1], backgroundColor:"#ef4444", borderRadius:6, borderSkipped:false },
+          ],
+        },
+        options:{ ...base, plugins:{ legend:{ display:true, position:"bottom", labels:{ color:text, padding:16, boxWidth:10, font:{size:11,weight:"600"} } } }, scales:{ x:{ ticks:{color:text}, grid:{color:grid} }, y:{ ticks:{color:text}, grid:{color:grid}, border:{dash:[4,4]} } } },
+      });
+    }
+
+    // Registration comparison
+    if (comparisonChartRef.current) {
+      chartInstancesRef.current.comparison = new Chart(comparisonChartRef.current, {
+        type:"bar",
+        data:{
+          labels:["Wk 1","Wk 2","Wk 3","Wk 4","Wk 5"],
+          datasets:[
+            { label:"Registered", data:[8,12,10,15,18], backgroundColor:"#6366f1", borderRadius:6, borderSkipped:false },
+            { label:"Approved",   data:[7,10,10,13,16], backgroundColor:"#10b981", borderRadius:6, borderSkipped:false },
+            { label:"Rejected",   data:[1,1,0,1,1],     backgroundColor:"#ef4444", borderRadius:6, borderSkipped:false },
+          ],
+        },
+        options:{ ...base, plugins:{ legend:{ display:true, position:"bottom", labels:{ color:text, padding:16, boxWidth:10, font:{size:11,weight:"600"} } } }, scales:{ x:{ ticks:{color:text}, grid:{color:grid} }, y:{ ticks:{color:text}, grid:{color:grid}, border:{dash:[4,4]} } } },
+      });
+    }
+
+    return () => Object.values(chartInstancesRef.current).forEach(c => c?.destroy());
+  }, [darkMode]);
+
+  /* ── Derived data ── */
+  const currentList = (activeTab === "pending" ? pendingBusinesses : approvedBusinesses)
+    .filter(b => !searchQuery || b.name?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const stats = [
-    { title: "Total Businesses", value: approvedBusinesses.length, icon: Store, color: "cyan", subtext: "+12 this month" },
-    { title: "Pending Review", value: pendingBusinesses.length, icon: Clock, color: "violet", subtext: "Requires action" },
-    { title: "Approval Rate", value: "94.3%", icon: TrendingUp, color: "emerald", subtext: "Healthy" },
-    { title: "Avg Response Time", value: "2.4h", icon: Activity, color: "orange", subtext: "Very fast" },
+    { label:"Total Approved", value: approvedBusinesses.length, delta:"+12", up:true,  spark:[20,24,18,28,22,30,26], color:"#10b981", icon: Building2 },
+    { label:"Pending Review", value: pendingBusinesses.length,  delta: pendingBusinesses.length > 0 ? "Needs action" : "All clear", up: pendingBusinesses.length === 0, spark:[5,3,8,2,4,6,pendingBusinesses.length], color:"#f59e0b", icon: Hourglass },
+    { label:"Approval Rate",  value:"94.3%",   delta:"+2.1%", up:true,  spark:[88,90,91,92,93,94,94], color:"#6366f1", icon: TrendingUp },
+    { label:"Avg Response",   value:"2.4h",    delta:"−0.3h", up:true,  spark:[3,2.8,3.1,2.7,2.5,2.4,2.4], color:"#06b6d4", icon: Clock },
   ];
+
+  /* ── Styles ── */
+  const dm = darkMode;
+  const cardBase = `backdrop-blur-2xl border rounded-[2rem] transition-all duration-300 ${dm ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-zinc-200 shadow-sm"}`;
+  const inputCls = `w-full px-4 py-3 rounded-xl border text-sm font-medium transition-all outline-none focus:ring-2 ${dm ? "bg-white/[0.04] border-white/[0.08] text-white placeholder-zinc-600 focus:ring-violet-500/30" : "bg-zinc-50 border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:ring-violet-300"}`;
 
   return (
     <div
-      className={`relative min-h-screen transition-colors duration-500 ${
-        darkMode ? "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" : "bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100"
-      }`}
-      onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+      className={`relative min-h-screen transition-colors duration-500 ${dm ? "bg-[#030303] text-white" : "bg-[#FAFAFA] text-zinc-900"}`}
+      style={{ fontFamily: "'Inter', sans-serif" }}
+      onMouseMove={e => setMousePos({ x: e.clientX, y: e.clientY })}
     >
+      {/* ── Backgrounds ── */}
+      <div className={`fixed inset-0 -z-50 ${dm ? "bg-[#030303]" : "bg-[#FAFAFA]"}`} />
+      <div className={`fixed inset-0 -z-40 bg-[size:40px_40px] ${dm ? "bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]" : "bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)]"}`} />
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-20">
-        {darkMode && (
-          <div className="absolute w-[800px] h-[800px] rounded-full blur-[180px] opacity-25" style={{
-            background: "radial-gradient(circle, rgba(124,58,237,0.8) 0%, transparent 70%)",
-            left: mousePos.x - 400,
-            top: mousePos.y - 400,
-          }} />
-        )}
-        <motion.div animate={{ y: [0, 60, 0] }} transition={{ duration: 12, repeat: Infinity }}
-          className={`absolute -top-60 left-1/4 w-[700px] h-[700px] rounded-full blur-[180px] ${
-            darkMode ? "bg-fuchsia-600 opacity-20" : "bg-fuchsia-300 opacity-25"
-          }`} />
-        <motion.div animate={{ y: [0, -60, 0] }} transition={{ duration: 14, repeat: Infinity }}
-          className={`absolute bottom-[-300px] right-1/4 w-[700px] h-[700px] rounded-full blur-[180px] ${
-            darkMode ? "bg-cyan-600 opacity-20" : "bg-cyan-200 opacity-35"
-          }`} />
+        {dm && <div className="absolute w-[600px] h-[600px] rounded-full blur-[140px] opacity-20" style={{ background:"radial-gradient(circle, rgba(124,58,237,0.8) 0%, transparent 70%)", left: mousePos.x-300, top: mousePos.y-300 }} />}
+        <motion.div animate={{ y:[0,40,0] }} transition={{ duration:10, repeat:Infinity }} className={`absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full blur-[160px] ${dm?"bg-fuchsia-600 opacity-15":"bg-fuchsia-300 opacity-20"}`} />
+        <motion.div animate={{ y:[0,-40,0] }} transition={{ duration:12, repeat:Infinity }} className={`absolute bottom-[-200px] right-1/4 w-[600px] h-[600px] rounded-full blur-[160px] ${dm?"bg-cyan-600 opacity-15":"bg-cyan-200 opacity-30"}`} />
       </div>
 
       <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
 
-      <div className="max-w-7xl mx-auto pt-20 pb-32 px-6">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 mb-16">
-          <motion.div whileHover={{ scale: 1.05 }} className={`p-4 rounded-2xl border backdrop-blur-xl ${
-            darkMode ? "bg-white/[0.08] border-white/20 text-violet-400" : "bg-white/60 border-white shadow-lg text-violet-600"
-          }`}>
-            <ShieldCheck size={36} />
-          </motion.div>
+      <div className="max-w-7xl mx-auto pt-10 pb-32 px-6">
+
+        {/* ── Page header ── */}
+        <motion.div initial={{ opacity:0, y:-16 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.5 }} className="flex items-end justify-between mb-10">
           <div>
-            <h1 className="text-5xl font-bold tracking-tight">Command Center</h1>
-            <p className={`text-base mt-2 ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>Real-time analytics & business management</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`p-2.5 rounded-2xl border ${dm?"bg-violet-500/10 border-violet-500/20 text-violet-400":"bg-violet-50 border-violet-100 text-violet-600"}`}>
+                <ShieldCheck size={22} />
+              </div>
+              <span className={`text-xs font-bold uppercase tracking-widest ${dm?"text-zinc-500":"text-zinc-400"}`}>Admin</span>
+            </div>
+            <h1 style={{ fontFamily:"'Outfit', sans-serif" }} className="text-5xl font-black tracking-tight leading-none">Command Center</h1>
+            <p className={`mt-2 text-sm font-medium ${dm?"text-zinc-500":"text-zinc-400"}`}>Real-time analytics & business management</p>
           </div>
+          <button
+            onClick={() => { fetchPending(); fetchApproved(); }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold border transition-all hover:scale-105 ${dm?"border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-white":"border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+          >
+            <RefreshCw size={14} /> Refresh
+          </button>
         </motion.div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
-          {stats.map((stat, idx) => (
-            <motion.div key={idx} whileHover={{ y: -8 }} className={`backdrop-blur-xl border rounded-[1.5rem] p-6 transition-all ${
-              darkMode ? "bg-white/[0.05] border-white/10 hover:border-white/20" : "bg-white/40 border-white/50 hover:bg-white/60"
-            }`}>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className={`text-xs font-semibold uppercase tracking-widest ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>{stat.title}</p>
-                  <p className="text-4xl font-bold mt-3">{stat.value}</p>
-                  <p className={`text-xs mt-2 ${darkMode ? "text-zinc-500" : "text-zinc-600"}`}>{stat.subtext}</p>
+        {/* ── Stats row ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {stats.map(({ label, value, delta, up, spark, color, icon: Icon }, i) => (
+            <motion.div
+              key={label}
+              initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay: i*0.07 }}
+              className={`${cardBase} p-6 overflow-hidden relative group`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-2.5 rounded-xl border shrink-0`} style={{ background:`${color}14`, borderColor:`${color}25` }}>
+                  <Icon size={17} style={{ color }} />
                 </div>
-                <div className={`p-3 rounded-xl ${stat.color === 'cyan' ? 'bg-cyan-500/20' : stat.color === 'violet' ? 'bg-violet-500/20' : stat.color === 'emerald' ? 'bg-emerald-500/20' : 'bg-orange-500/20'}`}>
-                  <stat.icon size={24} className={`${stat.color === 'cyan' ? 'text-cyan-500' : stat.color === 'violet' ? 'text-violet-500' : stat.color === 'emerald' ? 'text-emerald-500' : 'text-orange-500'}`} />
-                </div>
+                <span className={`flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 rounded-full ${up ? "text-emerald-500 bg-emerald-500/10":"text-rose-500 bg-rose-500/10"}`}>
+                  {up ? <ArrowUpRight size={11}/> : <ArrowDownRight size={11}/>}{delta}
+                </span>
+              </div>
+              <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${dm?"text-zinc-500":"text-zinc-400"}`}>{label}</p>
+              <p style={{ fontFamily:"'Outfit', sans-serif" }} className="text-3xl font-bold">{value}</p>
+              <div className="mt-3 opacity-60 group-hover:opacity-90 transition-opacity">
+                <Spark data={spark} color={color} h={36} />
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Approval Line Chart */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`backdrop-blur-xl border rounded-[1.5rem] p-6 ${
-            darkMode ? "bg-white/[0.05] border-white/10" : "bg-white/40 border-white/50"
-          }`}>
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <TrendingUp size={20} /> Approvals over time
-            </h3>
-            <div style={{ position: 'relative', width: '100%', height: '300px' }}>
-              <canvas ref={approvalChartRef}></canvas>
+        {/* ── Charts 2-col ── */}
+        <div className="grid lg:grid-cols-2 gap-5 mb-5">
+          {/* Approval trend */}
+          <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }} className={`${cardBase} p-7`}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${dm?"text-zinc-500":"text-zinc-400"}`}>Approval trend</p>
+                <p style={{ fontFamily:"'Outfit', sans-serif" }} className="text-xl font-bold">6-Month Overview</p>
+              </div>
+              <div className="flex gap-3 text-xs font-semibold">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />Approved</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />Rejected</span>
+              </div>
             </div>
+            <div className="relative h-[240px]"><canvas ref={approvalChartRef} /></div>
           </motion.div>
 
-          {/* Category Doughnut Chart */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className={`backdrop-blur-xl border rounded-[1.5rem] p-6 ${
-            darkMode ? "bg-white/[0.05] border-white/10" : "bg-white/40 border-white/50"
-          }`}>
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <PieChart size={20} /> Businesses by category
-            </h3>
-            <div style={{ position: 'relative', width: '100%', height: '300px' }}>
-              <canvas ref={categoryChartRef}></canvas>
+          {/* Category donut */}
+          <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.35 }} className={`${cardBase} p-7`}>
+            <div className="mb-6">
+              <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${dm?"text-zinc-500":"text-zinc-400"}`}>By category</p>
+              <p style={{ fontFamily:"'Outfit', sans-serif" }} className="text-xl font-bold">Business Mix</p>
             </div>
+            <div className="relative h-[240px]"><canvas ref={categoryChartRef} /></div>
           </motion.div>
         </div>
 
-        {/* Status Bar Chart */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className={`backdrop-blur-xl border rounded-[1.5rem] p-6 mb-6 ${
-          darkMode ? "bg-white/[0.05] border-white/10" : "bg-white/40 border-white/50"
-        }`}>
-          <h3 className="text-lg font-bold mb-4">Business registration status</h3>
-          <div style={{ position: 'relative', width: '100%', height: '280px' }}>
-            <canvas ref={statusChartRef}></canvas>
+        {/* ── Charts 2-col (bottom) ── */}
+        <div className="grid lg:grid-cols-2 gap-5 mb-8">
+          <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.4 }} className={`${cardBase} p-7`}>
+            <div className="mb-6">
+              <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${dm?"text-zinc-500":"text-zinc-400"}`}>Status breakdown</p>
+              <p style={{ fontFamily:"'Outfit', sans-serif" }} className="text-xl font-bold">Monthly Status</p>
+            </div>
+            <div className="relative h-[220px]"><canvas ref={statusChartRef} /></div>
+          </motion.div>
+
+          <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.45 }} className={`${cardBase} p-7`}>
+            <div className="mb-6">
+              <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${dm?"text-zinc-500":"text-zinc-400"}`}>Weekly funnel</p>
+              <p style={{ fontFamily:"'Outfit', sans-serif" }} className="text-xl font-bold">Registered vs Approved</p>
+            </div>
+            <div className="relative h-[220px]"><canvas ref={comparisonChartRef} /></div>
+          </motion.div>
+        </div>
+
+        {/* ── Directory section ── */}
+        <div className={`${cardBase} overflow-hidden`}>
+          {/* Toolbar */}
+          <div className={`px-7 py-5 border-b ${dm?"border-white/[0.06]":"border-zinc-100"}`}>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-1">
+                {[
+                  { id:"pending",  label:"Pending",  count: pendingBusinesses.length,  dot:"bg-amber-500"  },
+                  { id:"approved", label:"Approved", count: approvedBusinesses.length, dot:"bg-emerald-500"},
+                ].map(({ id, label, count, dot }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                      activeTab === id
+                        ? dm ? "bg-white/[0.08] text-white" : "bg-zinc-900 text-white"
+                        : dm ? "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]" : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                    {label}
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                      activeTab === id
+                        ? dm ? "bg-white/[0.12] text-zinc-300" : "bg-white/20 text-zinc-200"
+                        : dm ? "bg-white/[0.05] text-zinc-600" : "bg-zinc-100 text-zinc-500"
+                    }`}>{count}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="relative w-full md:w-64">
+                <Search size={14} className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${dm?"text-zinc-500":"text-zinc-400"}`} />
+                <input
+                  className={`${inputCls} pl-9`}
+                  placeholder="Search businesses…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
-        </motion.div>
 
-        {/* List Header */}
-        <div className="mb-8 flex items-center justify-between border-b pb-4 border-white/10">
-          <h2 className="text-2xl font-bold">{activeTab === "pending" ? "⏳ Action Required" : "📂 Manage Directory"}</h2>
-          <motion.span
-            layoutId="tabBadge"
-            className="px-4 py-2 rounded-full font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600"
-          >
-            {currentList.length}
-          </motion.span>
-        </div>
-
-        {/* Businesses List */}
-        <div className="space-y-4">
-          <AnimatePresence>
-            {currentList.length > 0 ? (
-              currentList.map((b) => (
-                <motion.div key={b.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9 }}
-                  className={`backdrop-blur-xl border rounded-[1.5rem] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all ${
-                    darkMode ? "bg-white/[0.05] border-white/10 hover:border-white/20" : "bg-white/50 border-white/50 hover:border-white hover:shadow-lg"
-                  }`}>
-                  <div className="flex items-start gap-5 flex-1">
-                    <div className={`w-16 h-16 rounded-[1.2rem] flex items-center justify-center text-3xl border ${
-                      darkMode ? "bg-white/[0.1] border-white/20" : "bg-white/60 border-white"
-                    }`}>{CATEGORIES.find(c => c.label === b.category)?.emoji || "🏪"}</div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg">{b.name}</h3>
-                      <span className={`inline-block text-[10px] uppercase font-bold px-3 py-1 rounded-full border mt-2 ${
-                        darkMode ? "bg-white/[0.1] border-white/20" : "bg-white/60 border-white"
-                      }`}>{b.category}</span>
-                      <p className={`text-sm mt-3 line-clamp-2 ${darkMode ? "text-zinc-400" : "text-zinc-700"}`}>{b.description}</p>
-                      <p className={`text-sm mt-2 ${darkMode ? "text-zinc-500" : "text-zinc-600"}`}>📞 {b.phone}</p>
+          {/* List */}
+          <div className={`divide-y ${dm?"divide-white/[0.04]":"divide-zinc-100"}`}>
+            <AnimatePresence mode="popLayout">
+              {currentList.length > 0 ? currentList.map((b, i) => (
+                <motion.div
+                  key={b.id}
+                  layout
+                  initial={{ opacity:0, y:10 }}
+                  animate={{ opacity:1, y:0 }}
+                  exit={{ opacity:0, x:-20, scale:0.97 }}
+                  transition={{ delay: i * 0.04 }}
+                  className={`flex flex-col md:flex-row md:items-center justify-between gap-5 px-7 py-5 transition-colors ${dm?"hover:bg-white/[0.02]":"hover:bg-zinc-50/80"}`}
+                >
+                  {/* Left: identity */}
+                  <div className="flex items-center gap-5 flex-1 min-w-0">
+                    {/* Avatar */}
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 border ${dm?"bg-white/[0.04] border-white/[0.06]":"bg-zinc-50 border-zinc-100"}`}>
+                      {CATEGORIES.find(c => c.label === b.category)?.emoji || "🏪"}
+                    </div>
+                    {/* Info */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap mb-1">
+                        <p className="font-bold text-[15px] truncate">{b.name}</p>
+                        {b.category && <CategoryPill label={b.category} darkMode={dm} />}
+                        {activeTab === "approved" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-emerald-500 bg-emerald-500/10">
+                            <CheckCircle2 size={10} /> Live
+                          </span>
+                        )}
+                        {activeTab === "pending" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-amber-500 bg-amber-500/10">
+                            <Hourglass size={10} /> Awaiting
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-sm truncate max-w-md ${dm?"text-zinc-500":"text-zinc-500"}`}>{b.description || "No description provided"}</p>
+                      <p className={`text-xs mt-1 font-medium ${dm?"text-zinc-600":"text-zinc-400"}`}>📞 {b.phone}</p>
                     </div>
                   </div>
-                  <div className="flex gap-3">
+
+                  {/* Right: actions */}
+                  <div className="flex items-center gap-2.5 shrink-0">
                     {activeTab === "pending" ? (
                       <>
-                        <motion.button whileHover={{ scale: 1.05 }} onClick={() => rejectBusiness(b.id)} className={`px-5 py-2.5 rounded-xl font-bold text-sm border ${
-                          darkMode ? "border-white/20 text-red-400 hover:bg-red-500/20" : "border-red-300 text-red-600 bg-red-50 hover:bg-red-100"
-                        }`}><X className="inline mr-2" size={16} /> Reject</motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} onClick={() => approveBusiness(b.id)} className="px-6 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-xl"><Check className="inline mr-2" size={16} /> Approve</motion.button>
+                        <button
+                          onClick={() => rejectBusiness(b.id)}
+                          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all hover:scale-105 ${dm?"border-white/[0.08] text-zinc-400 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/5":"border-zinc-200 text-zinc-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50"}`}
+                        >
+                          <X size={15} /> Reject
+                        </button>
+                        <button
+                          onClick={() => approveBusiness(b.id)}
+                          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:scale-105 transition-transform"
+                        >
+                          <Check size={15} /> Approve
+                        </button>
                       </>
                     ) : (
-                      <motion.button whileHover={{ scale: 1.05 }} onClick={() => deleteBusiness(b.id)} className={`px-5 py-2.5 rounded-xl font-bold text-sm border ${
-                        darkMode ? "border-white/20 text-red-400 hover:bg-red-500/20" : "border-red-300 text-red-600 bg-red-50 hover:bg-red-100"
-                      }`}><Trash2 className="inline mr-2" size={16} /> Delete</motion.button>
+                      <button
+                        onClick={() => deleteBusiness(b.id)}
+                        className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all hover:scale-105 ${dm?"border-white/[0.08] text-zinc-500 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/5":"border-zinc-200 text-zinc-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50"}`}
+                      >
+                        <Trash2 size={15} /> Delete
+                      </button>
                     )}
                   </div>
                 </motion.div>
-              ))
-            ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`flex flex-col items-center justify-center py-32 rounded-[2rem] border-2 border-dashed ${
-                darkMode ? "bg-white/[0.02] border-white/20" : "bg-white/30 border-white/60"
-              }`}>
-                <Sparkles size={48} className="mb-4" />
-                <h3 className="text-3xl font-bold mb-2">{activeTab === "pending" ? "You're all caught up! 🎉" : "No businesses yet 📭"}</h3>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )) : (
+                <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="flex flex-col items-center justify-center py-24">
+                  <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-5 border ${dm?"bg-white/[0.03] border-white/[0.06]":"bg-zinc-50 border-zinc-100"}`}>
+                    {activeTab === "pending" ? <CheckCircle2 size={28} className="text-emerald-500" /> : <Building2 size={28} className={dm?"text-zinc-600":"text-zinc-400"} />}
+                  </div>
+                  <p style={{ fontFamily:"'Outfit', sans-serif" }} className="text-2xl font-bold mb-2">
+                    {activeTab === "pending" ? "All caught up" : "No businesses yet"}
+                  </p>
+                  <p className={`text-sm ${dm?"text-zinc-600":"text-zinc-400"}`}>
+                    {activeTab === "pending" ? "No pending submissions at the moment." : "Approved businesses will appear here."}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Footer count */}
+          {currentList.length > 0 && (
+            <div className={`px-7 py-4 border-t ${dm?"border-white/[0.06]":"border-zinc-100"}`}>
+              <p className={`text-xs font-semibold ${dm?"text-zinc-600":"text-zinc-400"}`}>
+                Showing {currentList.length} {activeTab === "pending" ? "pending" : "approved"} {currentList.length === 1 ? "business" : "businesses"}
+                {searchQuery && ` matching "${searchQuery}"`}
+              </p>
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );
 }
-
-export default Admin;

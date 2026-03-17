@@ -7,7 +7,9 @@ import {
 import {
   Mic, Zap, Smartphone, MessageCircle, Quote, ArrowRight,
   ClipboardList, Bot, TrendingUp, Globe, Mail, HelpCircle,
-  Twitter, Instagram, Facebook
+  Twitter, Instagram, Facebook,
+  FileText, Star, Wallet, Receipt, BadgePercent, Gift,
+  Shield, Crown, ChevronRight, CheckCircle2
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 
@@ -98,13 +100,132 @@ const HOW_STEPS = [
   { icon: TrendingUp,    color: "text-emerald-500", bg: "bg-emerald-500/10", borderColor: "border-emerald-500/20", key: "step3" },
 ];
 
+// ── Mini GST Invoice Preview ──
+function MiniInvoicePreview({ darkMode }) {
+  const items = [
+    { name: "Rice Bag (25kg)", qty: 2, price: 1200, gst: 5 },
+    { name: "Cooking Oil (1L)", qty: 3, price: 150, gst: 12 },
+  ];
+  const subtotal = items.reduce((s, it) => s + it.qty * it.price, 0);
+  const tax = items.reduce((s, it) => s + (it.qty * it.price * it.gst) / 100, 0);
+  const total = subtotal + tax;
+
+  return (
+    <div className={`rounded-2xl border text-xs font-mono overflow-hidden ${darkMode ? "bg-black/40 border-white/10" : "bg-white border-zinc-200 shadow-sm"}`}>
+      {/* Header */}
+      <div className={`px-4 py-3 border-b ${darkMode ? "bg-blue-500/10 border-blue-500/20" : "bg-blue-50 border-blue-100"}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] ${darkMode ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700"}`}>AT</div>
+            <div>
+              <p className={`font-bold text-[11px] ${darkMode ? "text-zinc-200" : "text-zinc-800"}`}>Amma Tiffin Center</p>
+              <p className={`text-[9px] ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>GSTIN: 36AABCA1234A1Z5</p>
+            </div>
+          </div>
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${darkMode ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600 border border-blue-100"}`}>INV-04821</span>
+        </div>
+      </div>
+      {/* Items */}
+      <div className="px-4 py-3 space-y-1.5">
+        {items.map((it, i) => (
+          <div key={i} className="flex justify-between items-center">
+            <span className={darkMode ? "text-zinc-400" : "text-zinc-600"}>{it.name} ×{it.qty}</span>
+            <span className={`font-bold ${darkMode ? "text-zinc-200" : "text-zinc-800"}`}>₹{(it.qty * it.price).toLocaleString("en-IN")}</span>
+          </div>
+        ))}
+      </div>
+      {/* Totals */}
+      <div className={`px-4 py-3 border-t ${darkMode ? "border-white/[0.06]" : "border-zinc-100"}`}>
+        <div className="flex justify-between mb-1">
+          <span className={darkMode ? "text-zinc-500" : "text-zinc-400"}>Subtotal</span>
+          <span className={darkMode ? "text-zinc-300" : "text-zinc-600"}>₹{subtotal.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex justify-between mb-2">
+          <span className={darkMode ? "text-zinc-500" : "text-zinc-400"}>GST</span>
+          <span className={darkMode ? "text-zinc-300" : "text-zinc-600"}>₹{Math.round(tax)}</span>
+        </div>
+        <div className="flex justify-between font-black text-sm">
+          <span className={darkMode ? "text-zinc-100" : "text-zinc-900"}>Total</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-500">₹{Math.round(total).toLocaleString("en-IN")}</span>
+        </div>
+      </div>
+      {/* Actions */}
+      <div className={`px-4 py-2.5 border-t flex gap-2 ${darkMode ? "border-white/[0.06]" : "border-zinc-100"}`}>
+        <div className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-center text-[10px] font-bold">Send WhatsApp</div>
+        <div className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-bold border ${darkMode ? "border-white/10 text-zinc-400" : "border-zinc-200 text-zinc-500"}`}>Download PDF</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Mini Stamp Card ──
+function MiniStampCard({ stamps = 7, total = 10, darkMode }) {
+  return (
+    <div className={`grid grid-cols-5 gap-1.5`}>
+      {Array.from({ length: total }).map((_, i) => {
+        const filled = i < stamps;
+        return (
+          <div key={i} className={`aspect-square rounded-lg flex items-center justify-center border transition-all ${
+            filled
+              ? "bg-gradient-to-br from-amber-400 to-orange-500 border-amber-400 shadow-sm shadow-amber-400/30"
+              : darkMode ? "border-white/[0.06] bg-white/[0.02]" : "border-amber-200 bg-amber-50/50"
+          }`}>
+            {filled && <Star size={9} className="text-white" fill="white" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Mini Cash Summary ──
+function MiniCashSummary({ darkMode }) {
+  const rows = [
+    { label: "💵 Cash",    value: "₹3,200", color: "text-emerald-500" },
+    { label: "📲 UPI",     value: "₹1,650", color: "text-blue-500"    },
+    { label: "🕐 Credit",  value: "₹820",   color: "text-amber-500"   },
+    { label: "🛒 Restock", value: "₹1,100", color: "text-rose-500"    },
+  ];
+  return (
+    <div className={`rounded-2xl border font-mono text-xs overflow-hidden ${darkMode ? "bg-black/40 border-white/10" : "bg-white border-zinc-200 shadow-sm"}`}>
+      <div className={`px-4 py-2.5 border-b flex items-center justify-between ${darkMode ? "bg-emerald-500/10 border-emerald-500/20" : "bg-emerald-50 border-emerald-100"}`}>
+        <p className={`font-bold text-[11px] ${darkMode ? "text-emerald-300" : "text-emerald-800"}`}>Amma Tiffin — Daily Report</p>
+        <span className={`text-[9px] ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>Today ✓✓</span>
+      </div>
+      <div className="px-4 py-3 space-y-1.5">
+        {rows.map(({ label, value, color }) => (
+          <div key={label} className="flex justify-between">
+            <span className={darkMode ? "text-zinc-500" : "text-zinc-400"}>{label}</span>
+            <span className={`font-bold ${color}`}>{value}</span>
+          </div>
+        ))}
+      </div>
+      <div className={`px-4 py-2.5 border-t ${darkMode ? "border-white/[0.06]" : "border-zinc-100"}`}>
+        <div className="flex justify-between font-black text-sm">
+          <span className={darkMode ? "text-zinc-200" : "text-zinc-800"}>✅ Net Profit</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500">₹1,630</span>
+        </div>
+        <div className={`mt-2 h-1.5 rounded-full ${darkMode ? "bg-white/10" : "bg-zinc-100"}`}>
+          <div className="h-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 w-[43%]" />
+        </div>
+      </div>
+      <div className={`px-4 py-2 border-t flex gap-2 ${darkMode ? "border-white/[0.06]" : "border-zinc-100"}`}>
+        <div className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-center text-[10px] font-bold">Share Family</div>
+        <div className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-bold border ${darkMode ? "border-white/10 text-zinc-400" : "border-zinc-200 text-zinc-500"}`}>Send to CA</div>
+      </div>
+    </div>
+  );
+}
+
 function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [lang, setLang] = useState("en");
 
+  // ── FIX: Default to light mode (false), only use localStorage if explicitly set ──
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
-    return saved ? JSON.parse(saved) : false;
+    // Only respect saved preference if user has explicitly toggled it before
+    return saved !== null ? JSON.parse(saved) : false;
   });
 
   useEffect(() => {
@@ -157,7 +278,6 @@ function Home() {
       {/* ── NAVBAR with language toggle ── */}
       <div className="relative z-50">
         <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
-        {/* Language Switcher — injected alongside navbar; position it absolutely top-right */}
         <div className="absolute top-1/2 -translate-y-1/2 right-20 flex items-center gap-1">
           {LANGUAGES.map((l) => (
             <button
@@ -210,7 +330,6 @@ function Home() {
           {t.sub}
         </motion.p>
 
-        {/* ── NEW SPLIT CTAs ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.4 }}
           className="flex flex-col sm:flex-row gap-4 mt-10 w-full sm:w-auto"
@@ -292,7 +411,6 @@ function Home() {
               ))}
             </div>
 
-            {/* Chart with title + value */}
             <div className={`mt-8 rounded-2xl p-6 h-64 border ${
               darkMode ? "bg-white/[0.01] border-white/[0.05]" : "bg-white/50 border-zinc-100"
             }`}>
@@ -359,7 +477,6 @@ function Home() {
         </div>
 
         <div className="relative">
-          {/* Connector line (desktop only) */}
           <div className={`hidden md:block absolute top-16 left-[calc(16.666%+2rem)] right-[calc(16.666%+2rem)] h-px ${
             darkMode ? "bg-gradient-to-r from-transparent via-white/10 to-transparent" : "bg-gradient-to-r from-transparent via-zinc-200 to-transparent"
           }`} />
@@ -376,7 +493,6 @@ function Home() {
                   darkMode ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-zinc-200 shadow-sm"
                 }`}
               >
-                {/* Step number badge */}
                 <div className={`absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 ${
                   darkMode ? "bg-[#030303] border-white/10 text-zinc-400" : "bg-white border-zinc-200 text-zinc-500"
                 }`}>
@@ -399,7 +515,7 @@ function Home() {
         </div>
       </div>
 
-      {/* ── BENTO FEATURE GRID ── */}
+      {/* ── BENTO FEATURE GRID (original) ── */}
       <div className="max-w-6xl mx-auto px-6 py-24 relative z-10">
         <div className="text-center mb-16">
           <h2 style={{ fontFamily: "'Outfit', sans-serif" }} className="text-4xl md:text-5xl font-bold tracking-tight">Enterprise power. Local simplicity.</h2>
@@ -407,8 +523,6 @@ function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-          {/* Card 1: Voice Khata */}
           <motion.div whileHover={{ y: -5 }} className={`md:col-span-2 rounded-[2rem] p-10 border overflow-hidden relative group ${card}`}>
             <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${darkMode ? "bg-violet-500" : "bg-violet-300"}`} />
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg ${darkMode ? "bg-white/[0.05] border border-white/10 text-violet-400" : "bg-violet-50 border border-violet-100 text-violet-600"}`}>
@@ -421,7 +535,6 @@ function Home() {
             <p className={`mt-4 text-sm font-semibold ${darkMode ? "text-violet-400" : "text-violet-600"}`}>Avg. 2 hrs saved per day →</p>
           </motion.div>
 
-          {/* Card 2: Flash Sales */}
           <motion.div whileHover={{ y: -5 }} className={`rounded-[2rem] p-10 border relative overflow-hidden group ${card}`}>
             <div className={`absolute top-0 left-0 w-48 h-48 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${darkMode ? "bg-fuchsia-500" : "bg-fuchsia-300"}`} />
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-lg ${darkMode ? "bg-white/[0.05] border border-white/10 text-fuchsia-400" : "bg-fuchsia-50 border border-fuchsia-100 text-fuchsia-600"}`}>
@@ -434,7 +547,6 @@ function Home() {
             <p className={`mt-4 text-sm font-semibold ${darkMode ? "text-fuchsia-400" : "text-fuchsia-600"}`}>412 sales live today →</p>
           </motion.div>
 
-          {/* Card 3: PWA */}
           <motion.div whileHover={{ y: -5 }} className={`rounded-[2rem] p-10 border relative overflow-hidden group ${card}`}>
             <div className={`absolute bottom-0 right-0 w-48 h-48 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${darkMode ? "bg-cyan-500" : "bg-cyan-300"}`} />
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-lg ${darkMode ? "bg-white/[0.05] border border-white/10 text-cyan-400" : "bg-cyan-50 border border-cyan-100 text-cyan-600"}`}>
@@ -447,7 +559,6 @@ function Home() {
             <p className={`mt-4 text-sm font-semibold ${darkMode ? "text-cyan-400" : "text-cyan-600"}`}>Works on any Android →</p>
           </motion.div>
 
-          {/* Card 4: WhatsApp Marketing */}
           <motion.div whileHover={{ y: -5 }} className={`md:col-span-2 rounded-[2rem] p-10 border relative overflow-hidden group ${card}`}>
             <div className={`absolute bottom-0 left-0 w-64 h-64 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 ${darkMode ? "bg-emerald-500" : "bg-emerald-300"}`} />
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg ${darkMode ? "bg-white/[0.05] border border-white/10 text-emerald-400" : "bg-emerald-50 border border-emerald-100 text-emerald-600"}`}>
@@ -459,8 +570,178 @@ function Home() {
             </p>
             <p className={`mt-4 text-sm font-semibold ${darkMode ? "text-emerald-400" : "text-emerald-600"}`}>3× higher open rate vs email →</p>
           </motion.div>
-
         </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════
+          NEW FEATURES SECTION: GST Invoice, Loyalty, Cash
+      ══════════════════════════════════════════════════ */}
+      <div className="max-w-6xl mx-auto px-6 py-24 relative z-10">
+        {/* Section header */}
+        <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border ${
+              darkMode ? "bg-white/[0.03] border-white/[0.08] text-zinc-300" : "bg-violet-50 border-violet-100 text-violet-700"
+            }`}
+          >
+            <Zap size={12} className={darkMode ? "text-violet-400" : "text-violet-500"} /> New Features
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            style={{ fontFamily: "'Outfit', sans-serif" }}
+            className="text-4xl md:text-5xl font-bold tracking-tight"
+          >
+            Run your whole business.{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-500">From one screen.</span>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className={`mt-4 text-lg max-w-2xl mx-auto ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}
+          >
+            GST invoicing, customer loyalty programs, and daily cash summaries — built for the way Indian businesses actually work.
+          </motion.p>
+        </div>
+
+        {/* ── GST Invoice Feature ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className={`rounded-[2rem] border overflow-hidden mb-6 ${darkMode ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-zinc-200 shadow-xl shadow-zinc-100/80"}`}
+        >
+          <div className="grid md:grid-cols-2 gap-0">
+            {/* Left: copy */}
+            <div className="p-10 md:p-14 flex flex-col justify-center relative overflow-hidden">
+              <div className={`absolute top-0 left-0 w-80 h-80 rounded-full blur-[100px] opacity-15 ${darkMode ? "bg-blue-500" : "bg-blue-300"}`} />
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 relative z-10 ${darkMode ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-blue-50 text-blue-600 border border-blue-100"}`}>
+                <FileText size={28} strokeWidth={1.5} />
+              </div>
+              <h3 style={{ fontFamily: "'Outfit', sans-serif" }} className="text-3xl font-bold mb-4 tracking-tight relative z-10">
+                GST Invoice,<br />Done in 30 Seconds
+              </h3>
+              <p className={`text-lg leading-relaxed mb-6 relative z-10 ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>
+                Add items, select the right GST slab, and send a pixel-perfect invoice straight to your customer's WhatsApp — no CA required.
+              </p>
+              <ul className={`space-y-2.5 relative z-10 ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>
+                {["Auto-calculates CGST & SGST", "Multiple GST slabs (0%, 5%, 12%, 18%, 28%)", "PDF download for records", "WhatsApp delivery in one tap"].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm font-medium">
+                    <CheckCircle2 size={15} className={darkMode ? "text-blue-400 shrink-0" : "text-blue-500 shrink-0"} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className={`mt-6 text-sm font-bold relative z-10 ${darkMode ? "text-blue-400" : "text-blue-600"}`}>
+                Trusted by 3,200+ GST-registered businesses →
+              </p>
+            </div>
+            {/* Right: mini preview */}
+            <div className={`p-8 md:p-10 flex items-center justify-center ${darkMode ? "bg-blue-500/[0.03] border-l border-white/[0.05]" : "bg-gradient-to-br from-blue-50/60 to-violet-50/40 border-l border-zinc-100"}`}>
+              <div className="w-full max-w-xs">
+                <MiniInvoicePreview darkMode={darkMode} />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Loyalty Cards + Cash Summary side by side ── */}
+        <div className="grid md:grid-cols-2 gap-6">
+
+          {/* Loyalty Cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            className={`rounded-[2rem] border p-10 relative overflow-hidden ${darkMode ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-zinc-200 shadow-xl shadow-zinc-100/80"}`}
+          >
+            <div className={`absolute top-0 right-0 w-56 h-56 rounded-full blur-[80px] opacity-20 ${darkMode ? "bg-amber-500" : "bg-amber-300"}`} />
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 relative z-10 ${darkMode ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-amber-50 text-amber-600 border border-amber-100"}`}>
+              <Star size={28} strokeWidth={1.5} />
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif" }} className="text-2xl font-bold mb-3 tracking-tight relative z-10">
+              Digital Loyalty Cards
+            </h3>
+            <p className={`text-base leading-relaxed mb-6 relative z-10 ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>
+              Replace paper punch cards with a digital stamp system. Customers collect stamps via WhatsApp link — no app needed. Reward your best customers automatically.
+            </p>
+
+            {/* Live stamp preview */}
+            <div className={`rounded-2xl border p-5 mb-5 relative z-10 ${darkMode ? "bg-white/[0.03] border-white/[0.08]" : "bg-amber-50/60 border-amber-100"}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${darkMode ? "bg-white/[0.06] text-zinc-300" : "bg-white text-zinc-600 border border-zinc-100"}`}>RP</div>
+                  <div>
+                    <p className="font-bold text-sm">Ramesh P.</p>
+                    <p className={`text-xs ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>7 / 10 stamps</p>
+                  </div>
+                </div>
+                <span className={`text-[10px] font-black px-2 py-1 rounded-full ${darkMode ? "text-amber-400 bg-amber-400/10 border border-amber-400/20" : "text-amber-700 bg-amber-100 border border-amber-200"}`}>
+                  👑 Gold
+                </span>
+              </div>
+              <MiniStampCard stamps={7} total={10} darkMode={darkMode} />
+              <p className={`text-xs mt-2.5 font-medium ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>3 more to earn: Free Milk Pack 🎁</p>
+            </div>
+
+            <ul className={`space-y-2 relative z-10 ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>
+              {["Gold / Silver / Bronze tier system", "WhatsApp stamp reminders", "One-tap redeem for owner"].map(item => (
+                <li key={item} className="flex items-center gap-2 text-sm font-medium">
+                  <CheckCircle2 size={13} className={darkMode ? "text-amber-400 shrink-0" : "text-amber-500 shrink-0"} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p className={`mt-5 text-sm font-bold relative z-10 ${darkMode ? "text-amber-400" : "text-amber-600"}`}>
+              Avg. 34% higher repeat visits →
+            </p>
+          </motion.div>
+
+          {/* Cash Summary */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+            className={`rounded-[2rem] border p-10 relative overflow-hidden ${darkMode ? "bg-white/[0.02] border-white/[0.08]" : "bg-white border-zinc-200 shadow-xl shadow-zinc-100/80"}`}
+          >
+            <div className={`absolute top-0 right-0 w-56 h-56 rounded-full blur-[80px] opacity-20 ${darkMode ? "bg-emerald-500" : "bg-emerald-300"}`} />
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 relative z-10 ${darkMode ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
+              <Wallet size={28} strokeWidth={1.5} />
+            </div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif" }} className="text-2xl font-bold mb-3 tracking-tight relative z-10">
+              Daily Cash Summary
+            </h3>
+            <p className={`text-base leading-relaxed mb-6 relative z-10 ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>
+              At the end of each day, LocalLoop automatically generates a full breakdown — cash, UPI, credit given, expenses — and WhatsApps it to you and your family.
+            </p>
+
+            {/* Live preview */}
+            <div className="relative z-10 mb-5">
+              <MiniCashSummary darkMode={darkMode} />
+            </div>
+
+            <ul className={`space-y-2 relative z-10 ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>
+              {["Scheduled auto-send at your chosen time", "Share with family or CA instantly", "Monthly P&L export as PDF"].map(item => (
+                <li key={item} className="flex items-center gap-2 text-sm font-medium">
+                  <CheckCircle2 size={13} className={darkMode ? "text-emerald-400 shrink-0" : "text-emerald-500 shrink-0"} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p className={`mt-5 text-sm font-bold relative z-10 ${darkMode ? "text-emerald-400" : "text-emerald-600"}`}>
+              Zero manual bookkeeping required →
+            </p>
+          </motion.div>
+        </div>
+
+        {/* ── Feature CTA strip ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+          className={`mt-6 rounded-[2rem] border p-8 flex flex-col md:flex-row items-center justify-between gap-6 ${
+            darkMode ? "bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 border-violet-500/20" : "bg-gradient-to-r from-violet-50 to-fuchsia-50 border-violet-100"
+          }`}
+        >
+          <div>
+            <p style={{ fontFamily: "'Outfit', sans-serif" }} className="text-xl font-bold mb-1">All features. Zero extra cost.</p>
+            <p className={`text-sm ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>GST invoices, loyalty cards, cash summaries — included in every LocalLoop plan.</p>
+          </div>
+          <a href="/register" className="shrink-0 flex items-center gap-2 px-7 py-4 rounded-2xl bg-zinc-900 text-white font-bold hover:scale-105 transition-transform shadow-lg whitespace-nowrap">
+            Start for free <ArrowRight size={16} />
+          </a>
+        </motion.div>
       </div>
 
       {/* ── WALL OF LOVE ── */}
@@ -523,8 +804,6 @@ function Home() {
       <footer className={`border-t ${darkMode ? "border-white/[0.05]" : "border-zinc-200"}`}>
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
-
-            {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <p style={{ fontFamily: "'Outfit', sans-serif" }} className="text-xl font-black mb-3">
                 <span className="bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">LocalLoop</span>
@@ -542,8 +821,6 @@ function Home() {
                 ))}
               </div>
             </div>
-
-            {/* Product */}
             <div>
               <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>Product</p>
               {["Explore Directory", "Register Business", "Owner Dashboard", "Flash Sales", "AI Voice Khata"].map((item) => (
@@ -552,8 +829,6 @@ function Home() {
                 }`}>{item}</a>
               ))}
             </div>
-
-            {/* Company */}
             <div>
               <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>Company</p>
               {["About Us", "Blog", "Careers", "Press", "Partners"].map((item) => (
@@ -562,8 +837,6 @@ function Home() {
                 }`}>{item}</a>
               ))}
             </div>
-
-            {/* Support */}
             <div>
               <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${darkMode ? "text-zinc-500" : "text-zinc-400"}`}>Support</p>
               {["Help Center", "Contact Us", "Privacy Policy", "Terms of Service", "Report a Bug"].map((item) => (
@@ -572,10 +845,8 @@ function Home() {
                 }`}>{item}</a>
               ))}
             </div>
-
           </div>
 
-          {/* Bottom bar */}
           <div className={`pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 ${
             darkMode ? "border-white/[0.05]" : "border-zinc-100"
           }`}>
@@ -600,7 +871,6 @@ function Home() {
           </div>
         </div>
       </footer>
-
     </div>
   );
 }
