@@ -77,7 +77,7 @@ export default function Admin() {
 
   /* ── API ── */
   const fetchPending  = async () => {
-    try { const r = await axios.get("http://https://localloop-backend-7317.onrender.com/api/admin/pending"); setPendingBusinesses(r.data || []); } catch {}
+    try { const r = await axios.get("https://localloop-backend-7317.onrender.com/api/admin/pending"); setPendingBusinesses(r.data || []); } catch {}
   };
   const fetchApproved = async () => {
     try { const r = await getBusinesses(); setApprovedBusinesses(Array.isArray(r.data) ? r.data : []); } catch {}
@@ -86,13 +86,13 @@ export default function Admin() {
   useEffect(() => { fetchPending(); fetchApproved(); }, []);
 
   const approveBusiness = async (id) => {
-    try { await axios.put(`http://https://localloop-backend-7317.onrender.com/api/admin/approve/${id}`); fetchPending(); fetchApproved(); setActiveTab("approved"); }
+    try { await axios.put(`https://localloop-backend-7317.onrender.com/api/admin/approve/${id}`); fetchPending(); fetchApproved(); setActiveTab("approved"); }
     catch { alert("Error approving business"); }
   };
   const rejectBusiness  = (id) => setPendingBusinesses(p => p.filter(b => b.id !== id));
   const deleteBusiness  = async (id) => {
     if (!window.confirm("Permanently delete this business?")) return;
-    try { await axios.delete(`http://https://localloop-backend-7317.onrender.com/api/admin/business/${id}`); fetchApproved(); }
+    try { await axios.delete(`https://localloop-backend-7317.onrender.com/api/admin/business/${id}`); fetchApproved(); }
     catch { setApprovedBusinesses(p => p.filter(b => b.id !== id)); }
   };
 
