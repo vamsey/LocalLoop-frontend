@@ -55,6 +55,73 @@ const getMockMenu = (category) => {
   }
 };
 
+// ── Skeleton shimmer styles (injected once) ──────────────────────────────────
+const SKELETON_STYLE = `
+  @keyframes shimmer {
+    0%   { background-position: -700px 0; }
+    100% { background-position: 700px 0; }
+  }
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(128,128,128,0.08) 25%,
+      rgba(128,128,128,0.18) 37%,
+      rgba(128,128,128,0.08) 63%
+    );
+    background-size: 700px 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 0.75rem;
+  }
+`;
+
+// ── SkeletonCard ─────────────────────────────────────────────────────────────
+function SkeletonCard({ darkMode, listMode, index }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.06 }}
+      className={`
+        relative rounded-[2rem] overflow-hidden p-6 border
+        flex ${listMode ? "flex-row items-center gap-5" : "flex-col gap-4"}
+        ${darkMode
+          ? "bg-white/[0.02] border-white/[0.08]"
+          : "bg-white border-zinc-200"
+        }
+      `}
+    >
+      {/* Icon placeholder */}
+      <div className={`shrink-0 w-14 h-14 rounded-2xl skeleton-shimmer`} />
+
+      <div className={`flex-1 min-w-0 flex flex-col gap-3`}>
+        {/* Title */}
+        <div className="skeleton-shimmer h-6 w-3/5 rounded-xl" />
+        {/* Badges row */}
+        <div className="flex gap-2">
+          <div className="skeleton-shimmer h-4 w-16 rounded-full" />
+          <div className="skeleton-shimmer h-4 w-12 rounded-full" />
+        </div>
+        {/* Description lines */}
+        <div className="skeleton-shimmer h-3.5 w-full rounded-lg" />
+        <div className="skeleton-shimmer h-3.5 w-4/5 rounded-lg" />
+
+        {/* Footer row */}
+        <div className={`flex items-center justify-between pt-3 mt-auto border-t ${darkMode ? "border-white/[0.08]" : "border-zinc-100"}`}>
+          {/* Stars */}
+          <div className="flex items-center gap-1.5">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="skeleton-shimmer w-2.5 h-2.5 rounded-full" />
+            ))}
+            <div className="skeleton-shimmer h-3.5 w-6 rounded ml-1" />
+          </div>
+          {/* Distance */}
+          <div className="skeleton-shimmer h-3.5 w-14 rounded" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function Stars({ rating, darkMode }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -160,9 +227,13 @@ function BusinessCard({ business, index, darkMode, listMode, onClick }) {
   );
 }
 
+// ── How many skeleton placeholders to show ───────────────────────────────────
+const SKELETON_COUNT = 6;
+
 function Explore() {
   const [businesses, setBusinesses] = useState([]);
   const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(true);   // ← NEW
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [viewMode, setViewMode] = useState("grid");
@@ -185,14 +256,20 @@ function Explore() {
     else document.body.style.overflow = "auto";
   }, [selectedBusiness]);
 
+  // ── Fetch businesses — show skeletons instantly, swap in real cards ─────────
   useEffect(() => {
     (async () => {
+      setLoading(true);
       try {
         const res = await getBusinesses();
         const data = Array.isArray(res.data) ? res.data : [];
         setBusinesses(data);
         setFiltered(data);
-      } catch (err) { console.error("API error:", err); }
+      } catch (err) {
+        console.error("API error:", err);
+      } finally {
+        setLoading(false);   // ← hides skeletons regardless of success/error
+      }
     })();
   }, []);
 
@@ -228,6 +305,9 @@ function Explore() {
       style={{ fontFamily: "'Inter', sans-serif" }}
       onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
     >
+      {/* Inject shimmer keyframes once */}
+      <style>{SKELETON_STYLE}</style>
+
       <div className={`absolute inset-0 -z-30 bg-[size:40px_40px] ${
         darkMode
           ? "bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]"
@@ -270,7 +350,7 @@ function Explore() {
             darkMode ? "bg-white/[0.03] border-white/[0.08] text-zinc-300" : "bg-zinc-900/5 border-zinc-200 text-zinc-700"
           }`}>
             {locationName !== "you" ? <Navigation size={14} className="text-cyan-500" /> : <Sparkles size={14} className="text-violet-500" />}
-            {filtered.length} businesses near {locationName}
+            {loading ? "Loading businesses..." : `${filtered.length} businesses near ${locationName}`}
           </span>
           <h1 style={{ fontFamily: "'Outfit', sans-serif" }} className="text-5xl md:text-7xl font-black leading-tight tracking-tight">
             Explore{" "}
@@ -342,7 +422,27 @@ function Explore() {
 
       <div className="max-w-7xl mx-auto px-6 py-8 pb-32">
         <AnimatePresence mode="wait">
-          {filtered.length > 0 ? (
+
+          {/* ── SKELETON STATE — shown instantly while fetching ─────────── */}
+          {loading ? (
+            <motion.div
+              key="skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+              className={
+                viewMode === "grid"
+                  ? "grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+                  : "flex flex-col gap-6 max-w-4xl mx-auto"
+              }
+            >
+              {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                <SkeletonCard key={i} index={i} darkMode={darkMode} listMode={viewMode === "list"} />
+              ))}
+            </motion.div>
+
+          /* ── REAL CARDS ─────────────────────────────────────────────── */
+          ) : filtered.length > 0 ? (
             <motion.div
               key={`${activeCategory}-${search}-${viewMode}`}
               initial={{ opacity: 0 }}
@@ -358,6 +458,8 @@ function Explore() {
                 <BusinessCard key={b.id ?? i} business={b} index={i} darkMode={darkMode} listMode={viewMode === "list"} onClick={() => setSelectedBusiness(b)} />
               ))}
             </motion.div>
+
+          /* ── EMPTY STATE ─────────────────────────────────────────────── */
           ) : (
             <motion.div
               key="empty"
@@ -377,6 +479,7 @@ function Explore() {
               </p>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
 
