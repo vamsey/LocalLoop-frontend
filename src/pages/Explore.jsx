@@ -344,15 +344,18 @@ function Explore() {
 
       <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
 
-      <div className="relative pt-20 pb-16 px-6 text-center">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
-          <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6 border backdrop-blur-md ${
+      <div className="relative pt-24 pb-6 px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}
+          className="flex flex-col items-center gap-3"
+        >
+          <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest border backdrop-blur-md ${
             darkMode ? "bg-white/[0.03] border-white/[0.08] text-zinc-300" : "bg-zinc-900/5 border-zinc-200 text-zinc-700"
           }`}>
-            {locationName !== "you" ? <Navigation size={14} className="text-cyan-500" /> : <Sparkles size={14} className="text-violet-500" />}
+            {locationName !== "you" ? <Navigation size={12} className="text-cyan-500" /> : <Sparkles size={12} className="text-violet-500" />}
             {loading ? "Loading businesses..." : `${filtered.length} businesses near ${locationName}`}
           </span>
-          <h1 style={{ fontFamily: "'Outfit', sans-serif" }} className="text-5xl md:text-7xl font-black leading-tight tracking-tight">
+          <h1 style={{ fontFamily: "'Outfit', sans-serif" }} className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
             Explore{" "}
             <span className="bg-gradient-to-r from-cyan-400 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
               Local Businesses.
@@ -364,11 +367,11 @@ function Explore() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.12 }}
-          className="mt-10 flex justify-center"
+          className="mt-4 flex justify-center"
         >
           <div className="relative flex items-center w-full max-w-2xl group">
             {darkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-violet-500/20 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />}
-            <div className={`relative flex items-center w-full rounded-2xl px-5 py-4 transition-all duration-300
+            <div className={`relative flex items-center w-full rounded-2xl px-5 py-3 transition-all duration-300
               ${darkMode
                 ? "bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] focus-within:border-violet-500/50 focus-within:bg-white/[0.04]"
                 : "bg-white border border-zinc-200 shadow-lg focus-within:border-violet-400 focus-within:shadow-[0_0_0_4px_rgba(139,92,246,0.1)]"
